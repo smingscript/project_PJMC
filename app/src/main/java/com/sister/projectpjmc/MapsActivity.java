@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -49,6 +50,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ClusterManager<TkykItem> tkykItemClusterManager;
     private GoogleMap mMap;
     private MapView mapView;
+    private Geocoder geocoder;
+    private List<Address> list = null;
+    private ArrayList<List<Address>> addressArray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,24 +70,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         try {
             mMap = googleMap;
-
-//            LatLngBounds latLngBounds = new LatLngBounds(new LatLng(40.712216, -74.22655),     // South west corner
-//                    new LatLng(40.773941, -74.12544));
-//            mMap.setBounds(latLngBounds);
-//
-//            mMap.b
-
-//            final LatLngBounds AUSTRALIA = new LatLngBounds(
-//                    new LatLng(-44, 113), new LatLng(-10, 154));
-//
-//            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(AUSTRALIA.getCenter(), 10));
-//
-//            LatLngBounds ADELAIDE = new LatLngBounds(
-//                    new LatLng(-35.0, 138.58), new LatLng(-34.9, 138.61));
-//// Constrain the camera target to the Adelaide bounds.
-//            mMap.setMinZoomPreference(1.0f);
-//            mMap.setMaxZoomPreference(16.0f);
-//            mMap.setLatLngBoundsForCameraTarget(ADELAIDE);
+            geocoder = new Geocoder(this, Locale.KOREA);
+            addressArray = new ArrayList<>();
 
             //35.958438, 127.771991
             final LatLngBounds SEOUL = new LatLngBounds(
@@ -100,52 +88,44 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.addMarker(new MarkerOptions().position(center));
             mMap.moveCamera(CameraUpdateFactory.newLatLng(center));
 
-
             //threadMethod();
 
-
-
+            //Kml data 가져오기
             KmlLayer layer = new KmlLayer(mMap, R.raw.takoyaki, getApplicationContext());
             //layer.addLayerToMap();
 
-//            if(true){
-//                throw new AssertionError("Object cannot be null");
-//
-//            }
-
+            //Retrieve the first container in the KML layer
             KmlContainer container = layer.getContainers().iterator().next();
             //Retrieve a nested container within the first container
             container = container.getContainers().iterator().next();
+//            //Retrieve the first placemark in the nested container
+//            KmlPlacemark placemark = container.getPlacemarks().iterator().next();
+//            //Retrieve a polygon object in a placemark
+//            KmlPoint polygon = (KmlPoint) placemark.getGeometry();
+            //Create LatLngBounds of the outer coordinates of the polygon
+//            LatLngBounds.Builder builder = new LatLngBounds.Builder();
+//            for (LatLng latLng : polygon.getOuterBoundaryCoordinates()) {
+//                builder.include(latLng);
+//            }
 
-
+            //역지오코딩으로 각 점의 주소 가져오기
             for (KmlPlacemark placemark : container.getPlacemarks()) {
-
                 if(placemark.getGeometry().getGeometryType().equals("Point")) {
-//                    if(true){
-//                        throw new AssertionError("Object cannot be null");
-//                    }
                     KmlPoint point = (KmlPoint) placemark.getGeometry();
-                    LatLng latLng = new LatLng(point.getGeometryObject().latitude, point.getGeometryObject().longitude);
-                    mMap.addMarker(new MarkerOptions().position(latLng));
+                    list = geocoder.getFromLocation(point.getGeometryObject().latitude, point.getGeometryObject().longitude, 1);
+//                    LatLng latLng = new LatLng(point.getGeometryObject().latitude, point.getGeometryObject().longitude);
+//                    mMap.addMarker(new MarkerOptions().position(latLng));
 //                    Log.e(latLng.toString(), "return: " + latLng.toString());
-//                    tkykItemClusterManager.addItem(new TkykItem(latLng));
+//                    TkykItem offsetItem = new TkykItem(new LatLng(lat, lng));
+//                    tkykItemClusterManager.addItem(offsetItem);
+                    if(list != null){
+                        if(list.size() == 0) Log.e("Error", "해당되는 주소 정보는 없습니다");
+                        else addressArray.add(list);
+                    }
                 }
             }
-
-            final Geocoder geocoder = new Geocoder(this, Locale.KOREA);
-            List<Address> list = null;
-
-            list = geocoder.getFromLocation(35.958438, 127.771991, 10);
-
-            if(list != null){
-                if(list.size() == 0){
-                    Log.e("Error", "해당되는 주소 정보는 없습니다");
-                } else {
-                    Log.e("Geocoder", list.get(0).toString());
-                }
-            }
-
-//            KmlPolygon kmlPolygon = (KmlPolygon)layer.getPlacemarks();
+            Log.e("lists", Integer.toString(addressArray.size()));
+//            Log.e("lists", list.toString());
 
 
 //            // Set some lat/lng coordinates to start with.
